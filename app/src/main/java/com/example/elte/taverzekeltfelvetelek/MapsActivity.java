@@ -2,10 +2,12 @@ package com.example.elte.taverzekeltfelvetelek;
 
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MapsActivity extends FragmentActivity {
@@ -60,6 +62,8 @@ public class MapsActivity extends FragmentActivity {
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
-        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        Marker kezdo = mMap.addMarker(new MarkerOptions().position(new LatLng(47.4911057, 19.0678168)).title("Marker").snippet("This is my spot!"));
+        Log.d("latitude", String.valueOf(kezdo.getPosition().latitude));
+        Log.d("longitude", String.valueOf(kezdo.getPosition().longitude));
     }
 }
