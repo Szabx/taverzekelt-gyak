@@ -38,8 +38,8 @@
         </activity>
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDtX65NObS0bmLol_uQKq6L-JnVej69xkk"/> //majd ide írd be a saját API_KEY-ed és ezt kommentezd ki
-
+            android:value="AIzaSyAi6vcLEzU3hFgFxyvtu0SRzkn54G04nJQ"/>
+            <!--android:value="AIzaSyDtX65NObS0bmLol_uQKq6L-JnVej69xkk" - Zoli -->
     </application>
 
 </manifest>
