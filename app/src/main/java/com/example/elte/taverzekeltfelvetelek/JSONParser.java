@@ -35,6 +35,7 @@ public class JSONParser {
             DefaultHttpClient httpClient = new DefaultHttpClient();
             String paramString = URLEncodedUtils.format(params, "utf-8");
             url += "?" + paramString;
+            Log.d("MarkerUpload paramString: ", paramString.toString());
             HttpGet httpGet = new HttpGet(url);
 
             HttpResponse response = httpClient.execute(httpGet);
@@ -71,6 +72,7 @@ public class JSONParser {
             Log.e("JSON Parser", "Error parsing data " + e.toString());
         }
 
+        Log.d("jObj: ", String.valueOf(jObj));
         return jObj;
 
     }

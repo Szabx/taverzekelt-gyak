@@ -5,6 +5,8 @@
     <string name="toast_refresh">Update in progress...</string>
     <string name="toast_no_internet_connection">No internet connection</string>
     <string name="toast_service_not_available">Service not available</string>
+    <string name="toast_update_marker_success">Marker successfully updated</string>
+    <string name="toast_update_marker_error">Error when updating marker</string>
 
     <string name="pd_load">Loading datas. Please wait...</string>
 </resources>

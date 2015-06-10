@@ -24,12 +24,12 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLongClickListener, GoogleMap.OnMarkerClickListener {
@@ -37,7 +37,12 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     VanENet net_ellenoriz = new VanENet();
     Marker marker;
+    private String uj_megjegyzes = "";
+    private String params = "";
+    private double uj_lat;
+    private double uj_lon;
     private static String url_all_markers = "http://djzolee.net76.net/taverzekeles_get_all_markers.php";
+    private static String url_update_marker = "http://djzolee.net76.net/taverzekeles_upload_marker.php";
 
     private static final String TAG_SUCCESS = "success";
     private static final String TAG_MARKERS = "markers";
@@ -77,7 +82,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
     }
 
     @Override
-    public void onMapLongClick(LatLng point) {
+    public void onMapLongClick(final LatLng point) {
 
         final LatLng newPoint = point;
 
@@ -98,11 +103,20 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
             public void onClick(DialogInterface dialog, int which) {
                 String description;
                 description = input.getText().toString();
+                uj_megjegyzes = description;
+                Log.d("uj_megjegyzes",uj_megjegyzes);
+                uj_lat = point.latitude;
+                uj_lon = point.longitude;
+                params = "lat="+uj_lat+"&lon="+uj_lon+"&megjegyzes="+uj_megjegyzes;
+                Log.d("lat: ",Double.toString(uj_lat));
+                Log.d("lon: ",Double.toString(uj_lon));
 
                 mMap.addMarker(new MarkerOptions()
                         .position(newPoint)
                         .title(description)
                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+
+                uploadMarker();
             }
         });
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -113,6 +127,16 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
         });
 
         builder.show();
+    }
+
+    private void uploadMarker(){
+        if (net_ellenoriz.NetCheck(getApplicationContext())) {
+            new MarkerUpload().execute();
+        } else {
+            Toast.makeText(MapsActivity.this,
+                    R.string.toast_no_internet_connection,
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -265,11 +289,75 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                     mMap.addMarker(new MarkerOptions()
                             .position(new LatLng(lat, lon))
                             .title(megjegyzes)
+                            //.snippet("Population: 776733"));
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
                 }
             } else {
                 Toast toast = Toast.makeText(MapsActivity.this,
                         R.string.toast_service_not_available,
+                        Toast.LENGTH_SHORT);
+                toast.setGravity(Gravity.TOP, 0, 70);
+                toast.show();
+            }
+
+        }
+
+    }
+
+    class MarkerUpload extends AsyncTask<String, String, String> {
+        boolean query_successMu = false;
+
+        private ProgressDialog pDialog;
+        JSONParser jParser = new JSONParser();
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            pDialog = new ProgressDialog(MapsActivity.this);
+            pDialog.setMessage(getString(R.string.pd_load));
+            pDialog.setIndeterminate(false);
+            pDialog.setCancelable(false);
+            pDialog.show();
+        }
+
+        protected String doInBackground(String... args) {
+            List<NameValuePair> marker_params = new ArrayList<NameValuePair>();
+            marker_params.add(new BasicNameValuePair("", params));
+            Log.d("marker_params: ", String.valueOf(marker_params));
+
+            if (net_ellenoriz.ServerCheck(url_update_marker)) {
+                JSONObject jsonMu = jParser.makeHttpRequest(url_update_marker,
+                        marker_params);
+
+                Log.d("MarkerUpload marker: ", jsonMu.toString());
+                Log.d("MarkerUpload params: ", params);
+
+                try {
+                    int success = jsonMu.getInt(TAG_SUCCESS);
+
+                    if (success == 1) {
+                        query_successMu = true;
+                        Log.d("query_successMu: ", String.valueOf(query_successMu));
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                query_successMu = false;
+            }
+
+            return null;
+        }
+
+        protected void onPostExecute(String file_url) {
+            pDialog.dismiss();
+            if (query_successMu) {
+                Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_update_marker_success,
+                        Toast.LENGTH_SHORT);
+                toast.setGravity(Gravity.TOP, 0, 70);
+                toast.show();
+            } else {
+                Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_update_marker_error,
                         Toast.LENGTH_SHORT);
                 toast.setGravity(Gravity.TOP, 0, 70);
                 toast.show();
