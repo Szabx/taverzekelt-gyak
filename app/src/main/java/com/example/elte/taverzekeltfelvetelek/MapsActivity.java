@@ -48,14 +48,17 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
     private static final String TAG_MEGJEGYZES = "megjegyzes";
 
     JSONArray markers = null;
+    ArrayList<String[]> markersList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
+        markersList = new ArrayList<String[]>();
+
         if (net_ellenoriz.NetCheck(getApplicationContext())) {
-            //new LoadAllMarkers().execute();
+            new LoadAllMarkers().execute();
         } else {
             Toast.makeText(this, R.string.toast_no_internet_connection,
                     Toast.LENGTH_LONG).show();
@@ -183,11 +186,13 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
         mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
     }
 
-    /*class LoadAllMarkers extends AsyncTask<String, String, String> {
+    class LoadAllMarkers extends AsyncTask<String, String, String> {
         boolean query_success = false;
 
         private ProgressDialog pDialog;
         JSONParser jParser = new JSONParser();
+
+        private String[] markerInfo;
 
         @Override
         protected void onPreExecute() {
@@ -206,7 +211,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                 JSONObject json = jParser.makeHttpRequest(url_all_markers,
                         params);
 
-                Log.d("All Pesticides: ", json.toString());
+                Log.d("All Markers: ", json.toString());
 
                 try {
                     int success = json.getInt(TAG_SUCCESS);
@@ -223,12 +228,15 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                             String date = c.getString(TAG_DATE);
                             String megjegyzes = c.getString(TAG_MEGJEGYZES);
 
-                            HashMap<String, String> map = new HashMap<String, String>();
+                            markerInfo = new String[5];
 
-                            map.put(TAG_NID, id);
-                            map.put(TAG_NEV, name);
+                            markerInfo[0] = id;
+                            markerInfo[1] = lat;
+                            markerInfo[2] = lon;
+                            markerInfo[3] = date;
+                            markerInfo[4] = megjegyzes;
 
-                            productsList.add(map);
+                            markersList.add(markerInfo);
                             query_success = true;
                         }
                     }
@@ -245,12 +253,22 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
         protected void onPostExecute(String file_url) {
             pDialog.dismiss();
             if (query_success) {
-                ListAdapter adapter = new SimpleAdapter(Fo.this, productsList,
-                        R.layout.elem, new String[]{TAG_NID, TAG_NEV},
-                        new int[]{R.id.nid, R.id.nev});
-                setListAdapter(adapter);
+                double lat;
+                double lon;
+                String megjegyzes;
+                String[] marker = new String[4];
+                for (int i = 0; i < markersList.size(); i++) {
+                    marker = markersList.get(i);
+                    lat = Double.parseDouble(marker[1]);
+                    lon = Double.parseDouble(marker[2]);
+                    megjegyzes = marker[4];
+                    mMap.addMarker(new MarkerOptions()
+                            .position(new LatLng(lat, lon))
+                            .title(megjegyzes)
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+                }
             } else {
-                Toast toast = Toast.makeText(Fo.this,
+                Toast toast = Toast.makeText(MapsActivity.this,
                         R.string.toast_service_not_available,
                         Toast.LENGTH_SHORT);
                 toast.setGravity(Gravity.TOP, 0, 70);
@@ -259,6 +277,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
 
         }
 
-    }*/
+    }
 
 }
