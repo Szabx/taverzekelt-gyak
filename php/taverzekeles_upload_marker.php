@@ -21,6 +21,8 @@ if (isset($_GET["lat"]) && isset($_GET["lon"]) && isset($_GET["megjegyzes"])) {
 	else{
 		$response["success"] = 0;
 		}
-    echo json_encode($response);
+
+	echo $result;
+    //echo json_encode($response);
 }
 ?>

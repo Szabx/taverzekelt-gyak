@@ -116,7 +116,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                         .title(description)
                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
 
-                uploadMarker();
+                uploadMarker(newPoint, description);
             }
         });
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -129,9 +129,15 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
         builder.show();
     }
 
-    private void uploadMarker(){
+    private void uploadMarker(LatLng p, String m){
+        MarkerUpload ma = new MarkerUpload();
+
+        ma.addParam(new BasicNameValuePair("lat", p.latitude+""));
+        ma.addParam(new BasicNameValuePair("lon", p.longitude+""));
+        ma.addParam(new BasicNameValuePair("megjegyzes", m));
+
         if (net_ellenoriz.NetCheck(getApplicationContext())) {
-            new MarkerUpload().execute();
+            ma.execute();
         } else {
             Toast.makeText(MapsActivity.this,
                     R.string.toast_no_internet_connection,
@@ -309,6 +315,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
 
         private ProgressDialog pDialog;
         JSONParser jParser = new JSONParser();
+        private List<NameValuePair> marker_params = new ArrayList<NameValuePair>();
 
         @Override
         protected void onPreExecute() {
@@ -320,11 +327,12 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
             pDialog.show();
         }
 
-        protected String doInBackground(String... args) {
-            List<NameValuePair> marker_params = new ArrayList<NameValuePair>();
-            marker_params.add(new BasicNameValuePair("", params));
-            Log.d("marker_params: ", String.valueOf(marker_params));
+        protected void addParam(NameValuePair nvp)
+        {
+            marker_params.add(nvp);
+        }
 
+        protected String doInBackground(String... args) {
             if (net_ellenoriz.ServerCheck(url_update_marker)) {
                 JSONObject jsonMu = jParser.makeHttpRequest(url_update_marker,
                         marker_params);
@@ -338,6 +346,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                     if (success == 1) {
                         query_successMu = true;
                         Log.d("query_successMu: ", String.valueOf(query_successMu));
+                    }
+                    else if (success == -1)
+                    {
+                        query_successMu = false;
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
