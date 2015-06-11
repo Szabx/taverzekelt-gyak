@@ -39,8 +39,8 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAi6vcLEzU3hFgFxyvtu0SRzkn54G04nJQ"/>
-            <!--android:value="AIzaSyDtX65NObS0bmLol_uQKq6L-JnVej69xkk" - Zoli -->
+            android:value="AIzaSyDtX65NObS0bmLol_uQKq6L-JnVej69xkk"/>
+            <!--android:value="AIzaSyAi6vcLEzU3hFgFxyvtu0SRzkn54G04nJQ" - Szabi -->
     </application>
 
 </manifest>
