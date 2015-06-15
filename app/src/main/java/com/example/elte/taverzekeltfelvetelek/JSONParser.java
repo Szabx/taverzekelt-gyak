@@ -41,18 +41,23 @@ public class JSONParser {
             HttpResponse response = httpClient.execute(httpGet);
             HttpEntity entity = response.getEntity();
             is = entity.getContent();
+            Log.d("ihtusz","ihtusz");
 
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         } catch (ClientProtocolException e) {
             e.printStackTrace();
+            Log.d("jsonparser1","jsonparser1");
         } catch (IOException e) {
             e.printStackTrace();
+            Log.d("jsonparser2", "jsonparser2");
         } catch (Exception e) {
             e.printStackTrace();
+            Log.d("jsonparser3", "jsonparser3");
         }
 
         try {
+            Log.d("vmi","vmi");
             BufferedReader reader = new BufferedReader(new InputStreamReader(
                     is, "iso-8859-1"), 8);
             StringBuilder sb = new StringBuilder();
@@ -62,6 +67,7 @@ public class JSONParser {
             }
             is.close();
             json = sb.toString();
+            Log.d("j","j");
         } catch (Exception e) {
             Log.e("Buffer Error", "Error converting result " + e.toString());
         }
