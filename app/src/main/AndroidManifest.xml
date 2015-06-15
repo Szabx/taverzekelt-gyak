@@ -39,7 +39,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBmN7XK1YYr4SdmARpeq4_1UfnFOGd9kPo"/>
+            android:value="AIzaSyC60XKDrdAKv2p5PkYZpcgSegYpkkk31xg"/>
             <!--android:value="AIzaSyDtX65NObS0bmLol_uQKq6L-JnVej69xkk"/>  - Zoli  -->
     </application>
 

@@ -8,5 +8,8 @@
     <string name="toast_update_marker_success">Marker successfully updated</string>
     <string name="toast_update_marker_error">Error when updating marker</string>
 
+    <string name="toast_delete_marker_success">Marker removed</string>
+    <string name="toast_delete_marker_error">Error when removing marker</string>
+
     <string name="pd_load">Loading datas. Please wait...</string>
 </resources>

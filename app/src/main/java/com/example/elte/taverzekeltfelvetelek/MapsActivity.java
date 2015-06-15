@@ -12,7 +12,11 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -43,6 +47,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
     private double uj_lon;
     private static String url_all_markers = "http://djzolee.net76.net/taverzekeles_get_all_markers.php";
     private static String url_update_marker = "http://djzolee.net76.net/taverzekeles_upload_marker.php";
+    private static String url_delete_marker = "http://djzolee.net76.net/taverzekeles_delete_marker.php";
 
     private static final String TAG_SUCCESS = "success";
     private static final String TAG_MARKERS = "markers";
@@ -58,20 +63,28 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Set layout to main layout
         setContentView(R.layout.activity_maps);
 
+        // List of markers from DB, empty at first
         markersList = new ArrayList<String[]>();
 
+        // If device has active internet, init loader, else toast a message
         if (net_ellenoriz.NetCheck(getApplicationContext())) {
             new LoadAllMarkers().execute();
         } else {
             Toast.makeText(this, R.string.toast_no_internet_connection,
                     Toast.LENGTH_LONG).show();
         }
+
+        // Setup of map and other things like current position
         setUpMapIfNeeded();
 
         // Add map listener for long clicks
         mMap.setOnMapLongClickListener(this);
+
+        // Add marker click listener(default is show infowindow)
         mMap.setOnMarkerClickListener(this);
     }
 
@@ -188,32 +201,119 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
      */
     private void setUpMap() {
 
-        mMap.setMyLocationEnabled(true);
+        /**
+         *
+         * Custom marker info window
+         *
+         */
 
-        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+            // Setting a custom info window adapter for the google map
+            GoogleMap.InfoWindowAdapter iwa;
+            iwa = new GoogleMap.InfoWindowAdapter() {
 
-        Criteria criteria = new Criteria();
+                // Use default InfoWindow frame
+                @Override
+                public View getInfoWindow(Marker m) {
+                    return null;
+                }
 
-        String provider = locationManager.getBestProvider(criteria, true);
+                // Defines the contents of the InfoWindow
+                @Override
+                public View getInfoContents(Marker m) {
 
-        Location location = locationManager.getLastKnownLocation(provider);
+                    // Getting view from the layout file info_window_layout
+                    View v = getLayoutInflater().inflate(R.layout.info_window_layout, null);
+
+                    // Getting the position from the marker
+                    LatLng latLng = m.getPosition();
+
+                    // Getting reference to the TextView to set latitude
+                    TextView desc = (TextView) v.findViewById(R.id.description);
+
+                    desc.setText(m.getTitle());
+
+//                    Button btn = (Button)v.findViewById(R.id.delete);
+//
+//                    btn.setTag(m.getId());
+
+                    // Returning the view containing InfoWindow contents
+                    return v;
+
+                }
+            };
+            mMap.setInfoWindowAdapter(iwa);
+
+        /**
+         *
+         * Capture info window click event
+         *
+         * @Info    Notice!! - this captures WHOLE infowindow click, not only delete button. It's bad practice to use dynamic
+         *          content in infowindow, but there exists a pretty detailed and complicated workaround here:
+         * @link    http://stackoverflow.com/questions/14123243/google-maps-android-api-v2-interactive-infowindow-like-in-original-android-go
+         *
+         */
+
+            mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+                @Override
+                public void onInfoWindowClick(Marker marker)
+                {
+                    final String id = marker.getSnippet();
+
+                    // Confirm dialog box
+                    new AlertDialog.Builder(MapsActivity.this)
+                            .setTitle("Remove marker")
+                            .setMessage("Are you sure you want to remove this marker?")
+                            .setPositiveButton("Yes", new DialogInterface.OnClickListener()
+                            {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    MarkerDelete ma = new MarkerDelete();
+                                    ma.execute(id);
+                                }
+
+                            })
+                            .setNegativeButton("No", null)
+                            .show();
+                }
+            });
+
+        /**
+         *
+         * Get current location
+         *
+         */
+            try
+            {
+                mMap.setMyLocationEnabled(true);
+
+                LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+                Criteria criteria = new Criteria();
+
+                String provider = locationManager.getBestProvider(criteria, true);
+
+                Location location = locationManager.getLastKnownLocation(provider);
+
+                // Getting latitude of the current location
+                double latitude = location.getLatitude();
+
+                // Getting longitude of the current location
+                double longitude = location.getLongitude();
 
 
-        // Getting latitude of the current location
-        double latitude = location.getLatitude();
+                // Creating a LatLng object for the current location
+                LatLng latLng = new LatLng(latitude, longitude);
 
-        // Getting longitude of the current location
-        double longitude = location.getLongitude();
+                // Showing the current location in Google Map
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
 
-
-        // Creating a LatLng object for the current location
-        LatLng latLng = new LatLng(latitude, longitude);
-
-        // Showing the current location in Google Map
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-
-        // Zoom in the Google Map
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+                // Zoom in the Google Map
+                mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+            }
+            catch(Exception e)
+            {
+                e.printStackTrace();
+            }
     }
 
     class LoadAllMarkers extends AsyncTask<String, String, String> {
@@ -295,7 +395,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                     mMap.addMarker(new MarkerOptions()
                             .position(new LatLng(lat, lon))
                             .title(megjegyzes)
-                            //.snippet("Population: 776733"));
+                            .snippet(marker[0])
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
                 }
             } else {
@@ -370,6 +470,75 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                 toast.show();
             } else {
                 Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_update_marker_error,
+                        Toast.LENGTH_SHORT);
+                toast.setGravity(Gravity.TOP, 0, 70);
+                toast.show();
+            }
+
+        }
+
+    }
+
+    class MarkerDelete extends AsyncTask<String, String, String> {
+        boolean query_successMu = false;
+
+        private ProgressDialog pDialog;
+        JSONParser jParser = new JSONParser();
+        private List<NameValuePair> marker_params = new ArrayList<NameValuePair>();
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            pDialog = new ProgressDialog(MapsActivity.this);
+            pDialog.setMessage(getString(R.string.pd_load));
+            pDialog.setIndeterminate(false);
+            pDialog.setCancelable(false);
+            pDialog.show();
+        }
+
+        protected String doInBackground(String... args) {
+            if (net_ellenoriz.ServerCheck(url_delete_marker)) {
+                NameValuePair nvp = new BasicNameValuePair("marker_id", args.toString());
+                marker_params.add(nvp);
+                JSONObject jsonMu = jParser.makeHttpRequest(url_delete_marker,
+                        marker_params);
+
+                Log.d("Id: ", args.toString());
+
+                try {
+                    int success     = jsonMu.getInt(TAG_SUCCESS);
+                    String message  = jsonMu.getString(TAG_MEGJEGYZES);
+
+                    if (success == 1) {
+                        query_successMu = true;
+                        Log.d("query_successMu: ", String.valueOf(message));
+                    }
+                    else
+                    {
+                        query_successMu = false;
+                        Log.d("query_errorMu: ", String.valueOf(message));
+                    }
+
+                    Log.d("query_returnMessage", message);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                query_successMu = false;
+            }
+
+            return null;
+        }
+
+        protected void onPostExecute(String file_url) {
+            pDialog.dismiss();
+            if (query_successMu) {
+                Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_delete_marker_success,
+                        Toast.LENGTH_SHORT);
+                toast.setGravity(Gravity.TOP, 0, 70);
+                toast.show();
+            } else {
+                Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_delete_marker_error,
                         Toast.LENGTH_SHORT);
                 toast.setGravity(Gravity.TOP, 0, 70);
                 toast.show();
