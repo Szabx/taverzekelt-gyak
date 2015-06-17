@@ -450,6 +450,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
 
                 Log.d("MarkerUpload marker: ", jsonMu.toString());
                 Log.d("MarkerUpload params: ", params);
+                Log.d("marker_params: ", marker_params.toString());
 
                 try {
                     int success = jsonMu.getInt(TAG_SUCCESS);
@@ -479,11 +480,13 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                         Toast.LENGTH_SHORT);
                 toast.setGravity(Gravity.TOP, 0, 70);
                 toast.show();
+                Log.d("true","true");
             } else {
                 Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_update_marker_error,
                         Toast.LENGTH_SHORT);
                 toast.setGravity(Gravity.TOP, 0, 70);
                 toast.show();
+                Log.d("false","false");
             }
 
         }
