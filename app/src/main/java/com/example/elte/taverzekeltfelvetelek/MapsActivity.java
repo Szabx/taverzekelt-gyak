@@ -64,8 +64,9 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
     private static final String TAG_ID = "id";
     private static final String TAG_LAT = "lat";
     private static final String TAG_LON = "lon";
-    private static final String TAG_DATE = "date";
-    private static final String TAG_MEGJEGYZES = "megjegyzes";
+    private static final String TAG_DATE = "create_date";
+    private static final String TAG_COMMENT = "comment";
+    private static final int REFRESH_PERIOD = 10;
 
     JSONArray markers = null;
     ArrayList<DataObj> markersList;
@@ -370,7 +371,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                             String lat = c.getString(TAG_LAT);
                             String lon = c.getString(TAG_LON);
                             String date = c.getString(TAG_DATE);
-                            String megjegyzes = c.getString(TAG_MEGJEGYZES);
+                            String megjegyzes = c.getString(TAG_COMMENT);
 
                             SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
                             try {
@@ -514,7 +515,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
 
                 try {
                     int success     = jsonMu.getInt(TAG_SUCCESS);
-                    String message  = jsonMu.getString(TAG_MEGJEGYZES);
+                    String message  = jsonMu.getString(TAG_COMMENT);
 
                     if (success == 1) {
                         query_successMu = true;
@@ -555,4 +556,72 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
 
     }
 
+    class RefreshMap extends AsyncTask<Date, String, String> {
+        boolean query_successMu = false;
+
+        private ProgressDialog pDialog;
+        JSONParser jParser = new JSONParser();
+        private List<NameValuePair> marker_params = new ArrayList<NameValuePair>();
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            pDialog = new ProgressDialog(MapsActivity.this);
+            pDialog.setMessage(getString(R.string.pd_load));
+            pDialog.setIndeterminate(false);
+            pDialog.setCancelable(false);
+            pDialog.show();
+        }
+
+        protected String doInBackground(Date... currentDate) {
+            if (net_ellenoriz.ServerCheck(url_delete_marker)) {
+
+                Date end    = currentDate[0];
+                Date start  = currentDate[0];
+
+                marker_params.add(nvp);
+                JSONObject jsonMu = jParser.makeHttpRequest(url_delete_marker, marker_params);
+
+                try {
+                    int success     = jsonMu.getInt(TAG_SUCCESS);
+                    String message  = jsonMu.getString(TAG_COMMENT);
+
+                    if (success == 1) {
+                        query_successMu = true;
+                        Log.d("query_successMu: ", String.valueOf(message));
+                    }
+                    else
+                    {
+                        query_successMu = false;
+                        Log.d("query_errorMu: ", String.valueOf(message));
+                    }
+
+                    Log.d("query_returnMessage", message);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                query_successMu = false;
+            }
+
+            return null;
+        }
+
+        protected void onPostExecute(String file_url) {
+            pDialog.dismiss();
+            if (query_successMu) {
+                Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_delete_marker_success,
+                        Toast.LENGTH_SHORT);
+                toast.setGravity(Gravity.TOP, 0, 70);
+                toast.show();
+            } else {
+                Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_delete_marker_error,
+                        Toast.LENGTH_SHORT);
+                toast.setGravity(Gravity.TOP, 0, 70);
+                toast.show();
+            }
+
+        }
+
+    }
 }

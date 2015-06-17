@@ -6,7 +6,7 @@ mysql_select_db('a9524642_hive') or die (mysql_error());
 mysql_query('SET NAMES UTF8');
 mysql_query('SET CHARACTER SET UTF8');
 
-$result = mysql_query("SELECT *FROM markers") or die(mysql_error());
+$result = mysql_query("SELECT *FROM markers WHERE deleted = 0") or die(mysql_error());
 
 $response = array();
 
@@ -21,7 +21,7 @@ if (mysql_num_rows($result) > 0) {
         $product["lat"] = $row["lat"];
         $product["lon"] = $row["lon"];
 		$product["date"] = $row["date"];
-		$product["megjegyzes"] = $row["megjegyzes"];
+		$product["comment"] = $row["comment"];
 
 
         array_push($response["markers"], $product);

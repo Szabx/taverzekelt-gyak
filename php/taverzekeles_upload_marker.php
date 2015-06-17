@@ -8,13 +8,15 @@ mysql_query('SET CHARACTER SET UTF8');
 
 $response = array();
 
-if (isset($_GET["lat"]) && isset($_GET["lon"]) && isset($_GET["megjegyzes"])) {
+$response['success'] = -1;
+
+if (isset($_GET["lat"]) && isset($_GET["lon"]) && isset($_GET["comment"])) {
     $lat = mysql_real_escape_string($_GET['lat']);
 	$lon = mysql_real_escape_string($_GET['lon']);
-	$megjegyzes = mysql_real_escape_string($_GET['megjegyzes']);
+	$comment = mysql_real_escape_string($_GET['comment']);
 
-    $result = mysql_query("INSERT INTO markers (lat,lon,megjegyzes) VALUES ('$lat','$lon','$megjegyzes')");
-	
+    $result = mysql_query("INSERT INTO markers (lat,lon,comment) VALUES ('$lat','$lon','$comment')");
+
 	if($result){
 		$response["success"] = 1;
 		}
@@ -22,7 +24,6 @@ if (isset($_GET["lat"]) && isset($_GET["lon"]) && isset($_GET["megjegyzes"])) {
 		$response["success"] = 0;
 		}
 
-	echo $result;
-    //echo json_encode($response);
+    echo json_encode($response);
 }
 ?>
