@@ -40,7 +40,7 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
 
-            android:value="AIzaSyDtX65NObS0bmLol_uQKq6L-JnVej69xkk"/>
+            android:value="AIzaSyANgLsmm4HICBiU9JzLCHcYcILcN_r4-QY"/>
             <!--android:value="AIzaSyDtX65NObS0bmLol_uQKq6L-JnVej69xkk"/>  - Zoli  -->
 
             <!--android:value="AIzaSyC60XKDrdAKv2p5PkYZpcgSegYpkkk31xg"/> - Szabi  -->

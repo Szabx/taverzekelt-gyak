@@ -1,10 +1,11 @@
 <?php
 
-mysql_connect('mysql2.000webhost.com','a9524642_djzolee','szakdoga12') or die (mysql_error());
-mysql_select_db('a9524642_hive') or die (mysql_error());
+mysql_connect('s4.nethely.hu','taverzekelt','taverzekelt2016') or die (mysql_error());
+mysql_select_db('taverzekelt') or die (mysql_error());
 
 mysql_query('SET NAMES UTF8');
 mysql_query('SET CHARACTER SET UTF8');
+mysql_query("SET time_zone = '+2:00'");
 
 $result = mysql_query("SELECT *FROM markers WHERE deleted = 0") or die(mysql_error());
 
@@ -16,12 +17,12 @@ if (mysql_num_rows($result) > 0) {
     
     while ($row = mysql_fetch_array($result)) {
 	
-        $product = array();
-		$product["id"] = $row["id"];
-        $product["lat"] = $row["lat"];
-        $product["lon"] = $row["lon"];
-		$product["date"] = $row["date"];
-		$product["comment"] = $row["comment"];
+        	$product = array();
+		$product["id"] 			= $row["id"];
+        	$product["lat"] 			= $row["lat"];
+        	$product["lon"] 			= $row["lon"];
+		$product["create_date"] 	= $row["create_date"];
+		$product["comment"] 	= $row["comment"];
 
 
         array_push($response["markers"], $product);
@@ -35,4 +36,5 @@ if (mysql_num_rows($result) > 0) {
 
     echo json_encode($response);
 }
+exit();
 ?>

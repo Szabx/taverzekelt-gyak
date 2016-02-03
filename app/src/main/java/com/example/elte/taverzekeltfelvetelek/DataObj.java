@@ -1,5 +1,6 @@
 package com.example.elte.taverzekeltfelvetelek;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
@@ -20,6 +21,14 @@ public class DataObj {
         this.lng = lng;
         this.message = message;
         this.created = created;
+    }
+
+    public DataObj(int id, float lat, float lng, String message) {
+        this.id = id;
+        this.lat = lat;
+        this.lng = lng;
+        this.message = message;
+        this.created = new Date();
     }
 
     public int getId() {

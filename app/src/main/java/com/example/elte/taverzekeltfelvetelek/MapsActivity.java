@@ -7,6 +7,7 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.v4.app.FragmentActivity;
@@ -43,7 +44,9 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLongClickListener, GoogleMap.OnMarkerClickListener {
@@ -55,9 +58,9 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
     private String params = "";
     private double uj_lat;
     private double uj_lon;
-    private static String url_all_markers = "http://djzolee.net76.net/taverzekeles_get_all_markers.php";
-    private static String url_update_marker = "http://djzolee.net76.net/taverzekeles_upload_marker.php";
-    private static String url_delete_marker = "http://djzolee.net76.net/taverzekeles_delete_marker.php";
+    private static String url_all_markers = "http://www.taverzekelt2016.nhely.hu/taverzekeles_get_all_markers.php";
+    private static String url_update_marker = "http://www.taverzekelt2016.nhely.hu/taverzekeles_upload_marker.php";
+    private static String url_delete_marker = "http://www.taverzekelt2016.nhely.hu/taverzekeles_delete_marker.php";
 
     private static final String TAG_SUCCESS = "success";
     private static final String TAG_MARKERS = "markers";
@@ -66,11 +69,16 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
     private static final String TAG_LON = "lon";
     private static final String TAG_DATE = "create_date";
     private static final String TAG_COMMENT = "comment";
-    private static final int REFRESH_PERIOD = 10;
+    private static final String TAG_DATA = "data";
+    private static final int REFRESH_DELAY = 5000; // milliseconds
+
+    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 
     JSONArray markers = null;
-    ArrayList<DataObj> markersList;
+    ArrayList<DataObj> markersList, addedMarkersList, removedMarkersList;
     private HashMap<Marker, DataObj> markerData;
+    private int changedMarkers = 0; // 0-no actions; 1-added markers; 2-removed markers
+    private Handler h = new Handler(); // Refresh handler
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,6 +116,34 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
         setUpMapIfNeeded();
     }
 
+//    Refresh every now and then
+    protected void refresh()
+    {
+        h.postDelayed(new Runnable() {
+            public void run() {
+                // Check if some markers have been added
+                if (changedMarkers != 0) {
+                    // Refresh maps
+                    switch (changedMarkers) {
+                        case 1: // Added
+                            addedMarkersList.clear();
+                            break;
+                        case 2: // Removed
+                            removedMarkersList.clear();
+                            break;
+                        default:
+                            break;
+                    }
+                    // Reset flag
+                    changedMarkers = 0;
+                }
+                h.postDelayed(this, REFRESH_DELAY);
+            }
+        }, REFRESH_DELAY);
+    }
+
+//    Detect long click and add marker
+
     @Override
     public void onMapLongClick(final LatLng point) {
 
@@ -129,19 +165,15 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String description;
+
                 description = input.getText().toString();
                 uj_megjegyzes = description;
-                Log.d("uj_megjegyzes",uj_megjegyzes);
+                Log.d("uj_megjegyzes", uj_megjegyzes);
                 uj_lat = point.latitude;
                 uj_lon = point.longitude;
-                params = "lat="+uj_lat+"&lon="+uj_lon+"&megjegyzes="+uj_megjegyzes;
-                Log.d("lat: ",Double.toString(uj_lat));
-                Log.d("lon: ",Double.toString(uj_lon));
-
-                mMap.addMarker(new MarkerOptions()
-                        .position(newPoint)
-                        .title(description)
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+                params = "lat=" + uj_lat + "&lon=" + uj_lon + "&comment=" + uj_megjegyzes;
+                Log.d("lat: ", Double.toString(uj_lat));
+                Log.d("lon: ", Double.toString(uj_lon));
 
                 uploadMarker(newPoint, description);
             }
@@ -156,12 +188,14 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
         builder.show();
     }
 
+//    Call marker upload async task
+
     private void uploadMarker(LatLng p, String m){
         MarkerUpload ma = new MarkerUpload();
 
         ma.addParam(new BasicNameValuePair("lat", p.latitude+""));
         ma.addParam(new BasicNameValuePair("lon", p.longitude+""));
-        ma.addParam(new BasicNameValuePair("megjegyzes", m));
+        ma.addParam(new BasicNameValuePair("comment", m));
 
         if (net_ellenoriz.NetCheck(getApplicationContext())) {
             ma.execute();
@@ -172,10 +206,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
         }
     }
 
+//    Override default marker click action
+
     @Override
     public boolean onMarkerClick(Marker marker) {
-//        marker.setTitle("This is where the reason comes");
-//        marker.showInfoWindow();
         return false;
     }
 
@@ -208,9 +242,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
     }
 
     /**
-     * This is where we can add markers or lines, add listeners or move the camera. In this case, we
-     * just add a marker near Africa.
-     * <p/>
+     * This is where we can add markers or lines, add listeners or move the camera
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
@@ -246,9 +278,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
 
                     desc.setText(m.getTitle());
 
-//                    Button btn = (Button)v.findViewById(R.id.delete);
-//
-//                    btn.setTag(m.getId());
+                    Button btn = (Button)v.findViewById(R.id.delete);
 
                     // Returning the view containing InfoWindow contents
                     return v;
@@ -269,21 +299,24 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
 
             mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
                 @Override
-                public void onInfoWindowClick(Marker marker)
+                public void onInfoWindowClick(final Marker marker)
                 {
-                    final Marker finalMarker = marker;
+                    final Integer markerId = Integer.parseInt(marker.getSnippet());
+
 
                     // Confirm dialog box
                     new AlertDialog.Builder(MapsActivity.this)
                             .setTitle("Remove marker")
                             .setMessage("Are you sure you want to remove this marker?")
-                            .setPositiveButton("Yes", new DialogInterface.OnClickListener()
-                            {
+                            .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
                                     MarkerDelete ma = new MarkerDelete();
-                                    DataObj markerInfo  = markerData.get(finalMarker);
-                                    ma.execute(markerInfo.getId());
+                                    ma.addParam(new BasicNameValuePair("marker_id", Integer.toString(markerId)));
+                                    ma.execute();
+
+                                    // Delete marker from map
+                                    marker.remove();
                                 }
 
                             })
@@ -291,12 +324,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                             .show();
                 }
             });
-
-        /**
-         *
-         * Get current location
-         *
-         */
+//         Get current location
             try
             {
                 mMap.setMyLocationEnabled(true);
@@ -331,6 +359,9 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
             }
     }
 
+    //    Communication with server in background
+//    Show all markers asyc task
+
     class LoadAllMarkers extends AsyncTask<String, String, String> {
         boolean query_success = false;
 
@@ -362,6 +393,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                     int success = json.getInt(TAG_SUCCESS);
 
                     if (success == 1) {
+                        Log.d("Load marker success: ", "yes");
                         markers = json.getJSONArray(TAG_MARKERS);
 
                         for (int i = 0; i < markers.length(); i++) {
@@ -371,22 +403,23 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
                             String lat = c.getString(TAG_LAT);
                             String lon = c.getString(TAG_LON);
                             String date = c.getString(TAG_DATE);
-                            String megjegyzes = c.getString(TAG_COMMENT);
+                            String comment = c.getString(TAG_COMMENT);
 
-                            SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
                             try {
                                 java.util.Date newDate   = df.parse(date);
 
-                                DataObj markerObj   = new DataObj(Integer.parseInt(id.trim()), Float.parseFloat(lat.trim()), Float.parseFloat(lon.trim()), megjegyzes.trim(), newDate);
+                                DataObj markerObj   = new DataObj(Integer.parseInt(id.trim()), Float.parseFloat(lat.trim()), Float.parseFloat(lon.trim()), comment.trim(), newDate);
 
                                 markersList.add(markerObj);
+                                // InnerMarkerContainer.add(Integer.parseInt(id));
                             }
                             catch (ParseException e)
                             {
                                 e.printStackTrace();
                             }
-                            query_success = true;
                         }
+                        Log.d("MarkerList content : ", markersList.toString());
+                        query_success = true;
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -403,10 +436,12 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
             if (query_success) {
 
                 for (DataObj currentObj: markersList) {
-                    Marker m    = mMap.addMarker(new MarkerOptions()
-                                    .position(new LatLng(currentObj.getLat(), currentObj.getLng()))
-                                    .title(currentObj.getMessage())
-                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+                    String idString = Integer.toString(currentObj.getId());
+                    Marker m        = mMap.addMarker(new MarkerOptions()
+                                        .position(new LatLng(currentObj.getLat(), currentObj.getLng()))
+                                        .title(currentObj.getMessage())
+                                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                                        .snippet(idString));
                     markerData.put(m, currentObj);
                 }
             } else {
@@ -421,8 +456,16 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
 
     }
 
+//    Add marker async task
+
     class MarkerUpload extends AsyncTask<String, String, String> {
         boolean query_successMu = false;
+
+        // Returned params
+        Integer id;
+        String description;
+        String lat;
+        String lon;
 
         private ProgressDialog pDialog;
         JSONParser jParser = new JSONParser();
@@ -447,19 +490,20 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
             if (net_ellenoriz.ServerCheck(url_update_marker)) {
                 JSONObject jsonMu = jParser.makeHttpRequest(url_update_marker,
                         marker_params);
-
-                Log.d("MarkerUpload marker: ", jsonMu.toString());
-                Log.d("MarkerUpload params: ", params);
-                Log.d("marker_params: ", marker_params.toString());
-
                 try {
-                    int success = jsonMu.getInt(TAG_SUCCESS);
+                    int success         = jsonMu.getInt(TAG_SUCCESS);
 
                     if (success == 1) {
                         query_successMu = true;
-                        Log.d("query_successMu: ", String.valueOf(query_successMu));
+
+                        // Get info for new marker
+
+                        id              = jsonMu.getInt(TAG_ID);
+                        description     = jsonMu.getString(TAG_COMMENT);
+                        lat             = jsonMu.getString(TAG_LAT);
+                        lon             = jsonMu.getString(TAG_LON);
                     }
-                    else if (success == -1)
+                    else
                     {
                         query_successMu = false;
                     }
@@ -476,44 +520,45 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
         protected void onPostExecute(String file_url) {
             pDialog.dismiss();
             if (query_successMu) {
+
+                mMap.addMarker(new MarkerOptions()
+                        .position(new LatLng(Float.parseFloat(lat), Float.parseFloat(lon)))
+                        .title(description)
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                        .snippet(Integer.toString(id)));
+
                 Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_update_marker_success,
                         Toast.LENGTH_SHORT);
                 toast.setGravity(Gravity.TOP, 0, 70);
                 toast.show();
-                Log.d("true","true");
             } else {
                 Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_update_marker_error,
                         Toast.LENGTH_SHORT);
                 toast.setGravity(Gravity.TOP, 0, 70);
                 toast.show();
-                Log.d("false","false");
             }
 
         }
 
     }
 
-    class MarkerDelete extends AsyncTask<Integer, String, String> {
+//    Delete marker async task
+
+    class MarkerDelete extends AsyncTask<String, String, String> {
         boolean query_successMu = false;
 
         private ProgressDialog pDialog;
         JSONParser jParser = new JSONParser();
         private List<NameValuePair> marker_params = new ArrayList<NameValuePair>();
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            pDialog = new ProgressDialog(MapsActivity.this);
-            pDialog.setMessage(getString(R.string.pd_load));
-            pDialog.setIndeterminate(false);
-            pDialog.setCancelable(false);
-            pDialog.show();
+        protected void addParam(NameValuePair nvp)
+        {
+            marker_params.add(nvp);
         }
 
-        protected String doInBackground(Integer... markerId) {
+        protected String doInBackground(String... args) {
             if (net_ellenoriz.ServerCheck(url_delete_marker)) {
-                NameValuePair nvp = new BasicNameValuePair("marker_id", markerId[0].toString());
-                marker_params.add(nvp);
+
                 JSONObject jsonMu = jParser.makeHttpRequest(url_delete_marker, marker_params);
 
                 try {
@@ -522,15 +567,11 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
 
                     if (success == 1) {
                         query_successMu = true;
-                        Log.d("query_successMu: ", String.valueOf(message));
                     }
                     else
                     {
                         query_successMu = false;
-                        Log.d("query_errorMu: ", String.valueOf(message));
                     }
-
-                    Log.d("query_returnMessage", message);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -542,76 +583,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMapLon
         }
 
         protected void onPostExecute(String file_url) {
-            pDialog.dismiss();
-            if (query_successMu) {
-                Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_delete_marker_success,
-                        Toast.LENGTH_SHORT);
-                toast.setGravity(Gravity.TOP, 0, 70);
-                toast.show();
-            } else {
-                Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_delete_marker_error,
-                        Toast.LENGTH_SHORT);
-                toast.setGravity(Gravity.TOP, 0, 70);
-                toast.show();
-            }
 
-        }
-
-    }
-
-    class RefreshMap extends AsyncTask<Date, String, String> {
-        boolean query_successMu = false;
-
-        private ProgressDialog pDialog;
-        JSONParser jParser = new JSONParser();
-        private List<NameValuePair> marker_params = new ArrayList<NameValuePair>();
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            pDialog = new ProgressDialog(MapsActivity.this);
-            pDialog.setMessage(getString(R.string.pd_load));
-            pDialog.setIndeterminate(false);
-            pDialog.setCancelable(false);
-            pDialog.show();
-        }
-
-        protected String doInBackground(Date... currentDate) {
-            if (net_ellenoriz.ServerCheck(url_delete_marker)) {
-
-                Date end    = currentDate[0];
-                Date start  = currentDate[0];
-
-                marker_params.add(nvp);
-                JSONObject jsonMu = jParser.makeHttpRequest(url_delete_marker, marker_params);
-
-                try {
-                    int success     = jsonMu.getInt(TAG_SUCCESS);
-                    String message  = jsonMu.getString(TAG_COMMENT);
-
-                    if (success == 1) {
-                        query_successMu = true;
-                        Log.d("query_successMu: ", String.valueOf(message));
-                    }
-                    else
-                    {
-                        query_successMu = false;
-                        Log.d("query_errorMu: ", String.valueOf(message));
-                    }
-
-                    Log.d("query_returnMessage", message);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                query_successMu = false;
-            }
-
-            return null;
-        }
-
-        protected void onPostExecute(String file_url) {
-            pDialog.dismiss();
             if (query_successMu) {
                 Toast toast = Toast.makeText(MapsActivity.this, R.string.toast_delete_marker_success,
                         Toast.LENGTH_SHORT);
